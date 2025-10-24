@@ -1,13 +1,13 @@
-  #import the library
+# Library
 from p5 import *
 import random, math
 
-
+# Window Sizes
 win = {'width': 400, 'height': 600}
 FLOOR_Y = win['height'] - 40
 TWO_PI = math.pi * 2 #math constant
 
-#foods hierarchy from small -> big
+# foods hierarchy from small -> big
 foods_order = ['mint','pea', 'tomato', 'egg', 'pumpkin', 'cookie', 'sushi', 'pie', 'mooncake', 'pizza']
 food_colors = {
   'mint': Color(180, 255, 220),
@@ -23,7 +23,7 @@ food_colors = {
 }
 food_size = {'mint':20,'pea':30,'tomato':40, 'egg':70, 'pumpkin':90, 'cookie':120,'sushi': 170, 'pie': 190,'mooncake':200,'pizza':210}
 
-#try to make my own Physics engine
+# Physics
 
 GRAVITY = 0.32
 REST    = 0.55      #lower= much less bounce
@@ -44,7 +44,7 @@ you_win = False #make later
 game_over = False #make later
 
 
-# helpers
+# Helpers
 
 def clamp(x, lo, hi): #clamp is used for min max values
   if x < lo: return lo #force within bounds
@@ -68,12 +68,13 @@ def make_food(name, x, y): #create a food dict
   }
 
 
-
+# Setup, required
 def setup(): 
   size(win['width'], win['height'])
   title("mirandas dysfunctional suikia! click to drop fruit, merges on touch") 
   spawn_new_food() #call the food function to spawn food at start
 
+# New Food
 def spawn_new_food():
   global current_food 
   name = foods_order[random.randint(0, 3)]   # only spawn small foods
@@ -82,6 +83,8 @@ def spawn_new_food():
   current_food['vx'] = random.uniform(-5, 5) #move on the x axis
   current_food['vy'] = 0.0 #this is y velocity which is not moving yet
   current_food['cool'] = 0 #ready to merge right away
+
+# Mouse Pressed
 
 def mouse_pressed():
   global current_food, foods
@@ -94,7 +97,7 @@ def mouse_pressed():
     current_food = None
     spawn_new_food()       #food spawns immediately after drop
 
-
+# Lose, does not work yet
 def lose(): #make this later 
   global game_over
   game_over = True
@@ -107,17 +110,17 @@ def physics_step(f):
   f['vx'] *= AIR_DAMP #air resistance makes it slow down
   f['vy'] *= AIR_DAMP #same for y axis
 
-  #gravity +integrate
+  # gravity +integrate
   f['vy'] += GRAVITY #gravity effect so it falls down with increasing speed
   f['x'] += f['vx']; f['y'] += f['vy'] #update position
 
-  #walls
+  # walls
   if f['x'] - f['r'] < 0: #left wall for bounce
     f['x'] = f['r']; f['vx'] *= -REST #bouncing effect to reverse velocity
   if f['x'] + f['r'] > win['width']: #right wall for bounce
     f['x'] = win['width'] - f['r']; f['vx'] *= -REST #this is to reverse velocity on compared to rest, it loses some energy on bounce
 
-  #floor
+  # floor
   if f['y'] + f['r'] > FLOOR_Y: #floor collision
     f['y'] = FLOOR_Y - f['r'] #reset position to be on floor
     f['vy'] *= -REST #reverse y velocity with bounce effect
@@ -125,7 +128,7 @@ def physics_step(f):
     if abs(f['vy']) < 0.4: #if abs means absolute value, small bounce threshold
       f['vy'] = 0.0 #stop bouncing 
 
-  #cooldown tick
+  # cooldown tick
   if f['cool'] > 0: #cooldown for merging
     f['cool'] -= 1 
 
@@ -143,7 +146,7 @@ def resolve_pair(a, b): #this is to make them bounce off each other
   nx, ny = dx/dist, dy/dist #a vector is normalized because we want direction only. a vector is a direction with magnitude
   overlap = min_d - dist #this is how much they are overlapping
 
-  #positional correction which is split by mass 
+  # positional correction which is split by mass 
   total = a['m'] + b['m'] #total mass
   a_share = b['m'] / total #portion of movement for a
   b_share = a['m'] / total
@@ -154,27 +157,29 @@ def resolve_pair(a, b): #this is to make them bounce off each other
   b['x'] += nx * overlap * b_share
   b['y'] += ny * overlap * b_share #quick fix for sinking
 
-  #relative velocity along normal
+  # relative velocity along normal
   rvx = b['vx'] - a['vx']; rvy = b['vy'] - a['vy'] #relative velocity
   rel_n = rvx*nx + rvy*ny #relative velocity in normal direction
   if rel_n > 0: #they are moving apart
     return  #separates
 
-  #normal impulse for tempered bounce
+  # normal impulse for tempered bounce
   j = -(1 + REST) * rel_n 
   j /= (1.0/a['m'] + 1.0/b['m']) #this is for mass effect
   impx, impy = j*nx, j*ny
   a['vx'] -= impx / a['m']; a['vy'] -= impy / a['m']
   b['vx'] += impx / b['m']; b['vy'] += impy / b['m'] #apply impulse
 
-def resolve_all_collisions(): #resolve all collisions between foods
+  
+  # resolve all collisions between foods
+def resolve_all_collisions(): 
   n = len(foods) #number of foods
   for i in range(n): #iterate through all foods
     for j in range(i+1, n): 
       resolve_pair(foods[i], foods[j])
 
 
-#merging on touch
+# merging on touch
 
 def can_merge(a, b):
   if a['name'] != b['name']: #must be same type to merge
@@ -183,8 +188,8 @@ def can_merge(a, b):
   dx = b['x'] - a['x']; dy = b['y'] - a['y']
   return math.hypot(dx, dy) <= (a['r'] + b['r'] + MERGE_TOL) and a['cool'] == 0 and b['cool'] == 0 #ready to merge
 
+# merging mechanisms
 def merge_pass():
-#merging mechanisms
   global foods, you_win, score #you_win condition has not been implemented yet -> make later
   changed = False #tracking if any merges happens
   n = len(foods) #number of foods
@@ -192,7 +197,7 @@ def merge_pass():
   gone = set() #this is to track merged foods
 
 
-#continous merging in one pass, also win condition and score keeping
+# continous merging in one pass, also win condition and score keeping
   for i in range(n):
     if i in gone: continue #already merged
     for j in range(i+1, n):
@@ -205,7 +210,7 @@ def merge_pass():
         mx = (a['x'] + b['x']) / 2.0
         my = (a['y'] + b['y']) / 2.0
         nf = make_food(new_name, mx, my)
-        #momentum with small pop with merging
+  # momentum with small pop with merging
         nf['vx'] = (a['vx'] + b['vx']) / 2.0 #momentum conservation
         nf['vy'] = (a['vy'] + b['vy']) / 2.0 - 0.4 #small pop up
         nf['cool'] = 6   # prevent instant re-merge
@@ -221,7 +226,7 @@ def merge_pass():
   return changed
 
 
-#food designs
+# food designs
 def draw_food_design_centered(f):
   r = f['r']; name = f['name'] #food name determines design
   if name == 'pea':
@@ -305,8 +310,8 @@ def draw_food_design_centered(f):
       ellipse((ox*r, oy*r), r*s, r*s) #draw pepperoni slices
     fill(40,120,40)
 
-
-def draw_food(f): #drawing individual food
+# drawing individual food
+def draw_food(f): 
   x, y, r = f['x'], f['y'], f['r'] #food position and radius
   #shadow
   no_stroke(); fill(0,0,0,80)
@@ -333,7 +338,7 @@ def draw():
 
   stroke(120); line((0, FLOOR_Y), (win['width'], FLOOR_Y)); no_stroke() #this is the floor line
 
-  #previewing slides across top
+  # previewing slides across top
   if current_food and not current_food['falling']:
     f = current_food
     f['x'] += f['vx']
@@ -342,16 +347,17 @@ def draw():
       f['vx'] += random.uniform(-0.25, 0.25) #this is to make the movement less predictable (might get rid of later)
     f['x'] = clamp(f['x'], f['r'], win['width'] - f['r']) #clamp within window
 
-  #physics update
+  # physics update
   for f in foods:
     physics_step(f) #call physics step for each food
 
-  #merge first (so bouncy contacts don't get lost),then collide,then try merging again
+  # merge first (so bouncy contacts don't get lost),then collide,then try merging again
   merged_now = merge_pass()
   for _ in range(ITER): #multiple collision resolutions per frame
     resolve_all_collisions()
   merged_now = merge_pass()
 
+  # call the functions
   draw_all() #call draw all foods
   draw_score() #call score display
 
