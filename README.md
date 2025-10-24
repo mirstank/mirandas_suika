@@ -1,139 +1,138 @@
-# Library
-from p5 import *
-import random, math
+# libraries - using p5 and math for drawing
+	from p5 import *
+	import random, math
 
-# Window Sizes
-win = {'width': 400, 'height': 600}
-FLOOR_Y = win['height'] - 40
-TWO_PI = math.pi * 2 #math constant
+# window sizes
+	win = {'width': 400, 'height': 600}
+	FLOOR_Y = win['height'] - 40
+	TWO_PI = math.pi * 2 #math constant
+	
+# foods hierarchy from small -> big - all these are interchangeble to make your own personalized foods
+	foods_order = ['mint','pea', 'tomato', 'egg', 'pumpkin', 'cookie', 'sushi', 'pie', 'mooncake', 'pizza']
+	food_colors = {
+	  'mint': Color(180, 255, 220),
+	  'pea': Color(100, 220, 100), 
+	  'tomato': Color(220, 60, 60),
+	  'egg': Color(255, 255, 200),
+	  'pumpkin': Color(255, 180, 60),
+	  'cookie': Color(200, 170, 110),
+	  'sushi': Color(240, 230, 200),
+	  'pie': Color(240, 200, 110),
+	  'mooncake': Color(235, 190, 70),
+	  'pizza': Color(250, 170, 60)
+	}
+	food_size = {'mint':20,'pea':30,'tomato':40, 'egg':70, 'pumpkin':90, 'cookie':120,'sushi': 170, 'pie': 190,'mooncake':200,'pizza':210}
 
-# foods hierarchy from small -> big
-foods_order = ['mint','pea', 'tomato', 'egg', 'pumpkin', 'cookie', 'sushi', 'pie', 'mooncake', 'pizza']
-food_colors = {
-  'mint': Color(180, 255, 220),
-  'pea': Color(100, 220, 100), 
-  'tomato': Color(220, 60, 60),
-  'egg': Color(255, 255, 200),
-  'pumpkin': Color(255, 180, 60),
-  'cookie': Color(200, 170, 110),
-  'sushi': Color(240, 230, 200),
-  'pie': Color(240, 200, 110),
-  'mooncake': Color(235, 190, 70),
-  'pizza': Color(250, 170, 60)
-}
-food_size = {'mint':20,'pea':30,'tomato':40, 'egg':70, 'pumpkin':90, 'cookie':120,'sushi': 170, 'pie': 190,'mooncake':200,'pizza':210}
+# physics
 
-# Physics
+	GRAVITY = 0.32
+	REST    = 0.55      #lower= much less bounce
+	AIR_DAMP= 0.995     #gentle global damping
+	FLOOR_FRICTION = 0.98
+	ITER    = 3         #collision iterations
 
-GRAVITY = 0.32
-REST    = 0.55      #lower= much less bounce
-AIR_DAMP= 0.995     #gentle global damping
-FLOOR_FRICTION = 0.98
-ITER    = 3         #collision iterations
-
-#merge on touch for suika
-MERGE_TOL   = 3.0   #extra pixels of distance so that its merging more sensitive
-
-
-#game state
-
-foods = []           #all falling foods
-current_food = None  #the one movingo n the x axis
-score = 0
-you_win = False #make later
-game_over = False #make later
+	#merge on touch just like in suika
+	MERGE_TOL   = 3.0   #extra pixels of distance so that its merging more sensitive
 
 
-# Helpers
-
-def clamp(x, lo, hi): #clamp is used for min max values
-  if x < lo: return lo #force within bounds
-  if x > hi: return hi 
-  return x
-
-def next_tier(name):
-  i = foods_order.index(name) #find index of current food
-  return foods_order[min(i+1, len(foods_order)-1)] #return next food or same if at top
-
-def make_food(name, x, y): #create a food dict
-  r = food_size[name] / 2 #radius!
-  m = (r*r)/80.0 + 1.0   # rough mass/area
-  return {
-    'name': name, 
-    'x': float(x), 'y': float(y), #this is position for food 
-    'vx': 0.0, 'vy': 0.0, #velocity
-    'd': r*2, 'r': r, 'm': m, #diameter, radius, mass
-    'falling': True, 
-    'cool': 0,    #frames before it can merge so 0 means ready
-  }
+# game state - appendeble
+	
+	foods = []           #all falling foods
+	current_food = None  #the one movingo n the x axis
+	score = 0
+	you_win = False #make later
+	game_over = False #make later
 
 
-# Setup, required
-def setup(): 
-  size(win['width'], win['height'])
-  title("mirandas dysfunctional suikia! click to drop fruit, merges on touch") 
-  spawn_new_food() #call the food function to spawn food at start
+# helpers
 
-# New Food
-def spawn_new_food():
-  global current_food 
-  name = foods_order[random.randint(0, 3)]   # only spawn small foods
-  current_food = make_food(name, random.randint(80, win['width'] - 80), 60) #spawn near top
-  current_food['falling'] = False #not until mouse pressed
-  current_food['vx'] = random.uniform(-5, 5) #move on the x axis
-  current_food['vy'] = 0.0 #this is y velocity which is not moving yet
-  current_food['cool'] = 0 #ready to merge right away
-
-# Mouse Pressed
-
-def mouse_pressed():
-  global current_food, foods
-  if current_food and not current_food['falling']:
-    dropping = current_food 
-    dropping['falling'] = True #update game state
-    dropping['vy'] = 2.0
-    dropping['cool'] = 0   #still ready to merge right away
-    foods.append(dropping) #add to foods list
-    current_food = None
-    spawn_new_food()       #food spawns immediately after drop
-
-# Lose, does not work yet
-def lose(): #make this later 
-  global game_over
-  game_over = True
-  print("you lose final score:", score)
+	def clamp(x, lo, hi): #clamp is used for min max values
+	  if x < lo: return lo #force within bounds
+	  if x > hi: return hi 
+	  return x
+	
+	def next_tier(name):
+	  i = foods_order.index(name) #find index of current food
+	  return foods_order[min(i+1, len(foods_order)-1)] #return next food or same if at top
+	
+	def make_food(name, x, y): #create a food dict
+	  r = food_size[name] / 2 #radius!
+	  m = (r*r)/80.0 + 1.0   # rough mass/area
+	  return {
+	    'name': name, 
+	    'x': float(x), 'y': float(y), #this is position for food 
+	    'vx': 0.0, 'vy': 0.0, #velocity
+	    'd': r*2, 'r': r, 'm': m, #diameter, radius, mass
+	    'falling': True, 
+	    'cool': 0,    #frames before it can merge so 0 means ready
+	  }
 
 
-#physics engine inspo from byron
-def physics_step(f):
-  # damping
-  f['vx'] *= AIR_DAMP #air resistance makes it slow down
-  f['vy'] *= AIR_DAMP #same for y axis
+# setup - for p5 required
+	def setup(): 
+	  size(win['width'], win['height'])
+	  title("mirandas dysfunctional suikia! click to drop fruit, merges on touch") 
+	  spawn_new_food() #call the food function to spawn food at start
+
+# new Food
+	def spawn_new_food():
+	  global current_food 
+	  name = foods_order[random.randint(0, 3)]   # only spawn small foods
+	  current_food = make_food(name, random.randint(80, win['width'] - 80), 60) #spawn near top
+	  current_food['falling'] = False #not until mouse pressed
+	  current_food['vx'] = random.uniform(-5, 5) #move on the x axis
+	  current_food['vy'] = 0.0 #this is y velocity which is not moving yet
+	  current_food['cool'] = 0 #ready to merge right away
+
+# mouse pressed - drops food when mouse pressed
+
+	def mouse_pressed():
+	  global current_food, foods
+	  if current_food and not current_food['falling']:
+	    dropping = current_food 
+	    dropping['falling'] = True #update game state
+	    dropping['vy'] = 2.0
+	    dropping['cool'] = 0   #still ready to merge right away
+	    foods.append(dropping) #add to foods list
+	    current_food = None
+	    spawn_new_food()       #food spawns immediately after drop
+
+# lose, does not work yet
+	def lose(): #make this later 
+	  global game_over
+	  game_over = True
+	  print("you lose final score:", score)
+
+
+  # damping - inspo from Byron
+	def physics_step(f):
+	  f['vx'] *= AIR_DAMP #air resistance makes it slow down
+	  f['vy'] *= AIR_DAMP #same for y axis
 
   # gravity +integrate
-  f['vy'] += GRAVITY #gravity effect so it falls down with increasing speed
-  f['x'] += f['vx']; f['y'] += f['vy'] #update position
+	  f['vy'] += GRAVITY #gravity effect so it falls down with increasing speed
+	  f['x'] += f['vx']; f['y'] += f['vy'] #update position
 
   # walls
-  if f['x'] - f['r'] < 0: #left wall for bounce
-    f['x'] = f['r']; f['vx'] *= -REST #bouncing effect to reverse velocity
-  if f['x'] + f['r'] > win['width']: #right wall for bounce
-    f['x'] = win['width'] - f['r']; f['vx'] *= -REST #this is to reverse velocity on compared to rest, it loses some energy on bounce
+	  if f['x'] - f['r'] < 0: #left wall for bounce
+	    f['x'] = f['r']; f['vx'] *= -REST #bouncing effect to reverse velocity
+	  if f['x'] + f['r'] > win['width']: #right wall for bounce
+	    f['x'] = win['width'] - f['r']; f['vx'] *= -REST #this is to reverse velocity on compared to rest, it loses some energy on bounce
 
   # floor
-  if f['y'] + f['r'] > FLOOR_Y: #floor collision
-    f['y'] = FLOOR_Y - f['r'] #reset position to be on floor
-    f['vy'] *= -REST #reverse y velocity with bounce effect
-    f['vx'] *= FLOOR_FRICTION #friction effect on x velocity
-    if abs(f['vy']) < 0.4: #if abs means absolute value, small bounce threshold
-      f['vy'] = 0.0 #stop bouncing 
+	  if f['y'] + f['r'] > FLOOR_Y: #floor collision
+	    f['y'] = FLOOR_Y - f['r'] #reset position to be on floor
+	    f['vy'] *= -REST #reverse y velocity with bounce effect
+	    f['vx'] *= FLOOR_FRICTION #friction effect on x velocity
+	    if abs(f['vy']) < 0.4: #if abs means absolute value, small bounce threshold
+	      f['vy'] = 0.0 #stop bouncing 
 
   # cooldown tick
-  if f['cool'] > 0: #cooldown for merging
-    f['cool'] -= 1 
+	  if f['cool'] > 0: #cooldown for merging
+	    f['cool'] -= 1 
 
-def resolve_pair(a, b): #this is to make them bounce off each other
-    #overlap
+	def resolve_pair(a, b): #this is to make them bounce off each other
+  # overlap
   dx = b['x'] - a['x']; dy = b['y'] - a['y'] #this is the distance vector between two foods so we can calculate the distance
   dist = math.hypot(dx, dy) #distance between centers
   min_d = a['r'] + b['r'] #minimum distance to avoid overlap
